@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #000000;
@@ -15,7 +15,7 @@
   --foreground-paragraph: #acacac;
   --foreground-caption: #92959b;
   --foreground-tertiary: #121212;
-  --separator-prominent: #353535;
+  --separator-prominent: #35353566;
   --separator-light: #1a1a1a;
   --separator-button: #00000000;
   --status-error: #dd443c;
@@ -39,7 +39,7 @@
   --icon-chip: rgba(255, 255, 255, 0.08);
 }
 
-html[data-theme="light"] {
+html[data-theme='light'] {
   --background: #ffffff;
   --foreground: #171717;
   --background-primary: #ffffff;
@@ -87,8 +87,10 @@ body {
   min-height: 100vh;
   background: var(--background-primary);
   color: var(--foreground-primary);
-  font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
-  transition: background-color 180ms ease, color 180ms ease;
+  font-family: var(--font-space-grotesk), 'Segoe UI', sans-serif;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 button,
