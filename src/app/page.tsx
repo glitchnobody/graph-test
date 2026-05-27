@@ -781,12 +781,14 @@ function buildSmoothLinePath(points: Array<{ x: number; y: number }>) {
   return path;
 }
 
-function buildAreaPath(points: Array<{ x: number; y: number }>) {
+function buildAreaPath(
+  points: Array<{ x: number; y: number }>,
+  baseline = getChartY(0),
+) {
   if (points.length === 0) {
     return '';
   }
 
-  const baseline = getChartY(0);
   const first = points[0];
   const last = points[points.length - 1];
 
@@ -799,12 +801,14 @@ function buildAreaPath(points: Array<{ x: number; y: number }>) {
   ].join(' ');
 }
 
-function buildSmoothAreaPath(points: Array<{ x: number; y: number }>) {
+function buildSmoothAreaPath(
+  points: Array<{ x: number; y: number }>,
+  baseline = getChartY(0),
+) {
   if (points.length === 0) {
     return '';
   }
 
-  const baseline = getChartY(0);
   const first = points[0];
   const last = points[points.length - 1];
   let path = `M ${first.x} ${baseline} L ${first.x} ${first.y}`;
@@ -1570,6 +1574,13 @@ export default function Home() {
   const activePadding = useBarChart ? barChartPadding : chartPadding;
   const currentLeftPadding = axisVisible ? activePadding.left : 8;
   const currentRightPadding = activePadding.right;
+  const innerHeight = chartHeight - chartPadding.top - chartPadding.bottom;
+  const chartDisplayMaxValue =
+    selectedVariant === 'type-8' ? chartMaxValue + 1 : chartMaxValue;
+  const getDisplayY = (value: number) =>
+    chartPadding.top +
+    ((chartDisplayMaxValue - value) * innerHeight) /
+      Math.max(chartDisplayMaxValue, 1);
   const [displayPoints, setDisplayPoints] = useState<AnimatedPoint[]>(() =>
     points.map((point, index) => ({
       ...point,
@@ -1653,10 +1664,9 @@ export default function Home() {
     ...series,
     points: displayPoints.map((point) => ({
       x: point.x,
-      y: getChartY(point[series.key]),
+      y: getDisplayY(point[series.key]),
     })),
   }));
-  const innerHeight = chartHeight - chartPadding.top - chartPadding.bottom;
   const metricRows: MetricRow[] = chartSeries.map((series) => {
     const sparkline = displayPoints.map((point) =>
       Number(point[series.key].toFixed(2)),
@@ -1701,7 +1711,7 @@ export default function Home() {
           16,
           Math.min(
             76,
-            Math.min(...hoveredValues.map((entry) => getChartY(entry.value))) -
+            Math.min(...hoveredValues.map((entry) => getDisplayY(entry.value))) -
               44,
           ),
         );
@@ -1731,6 +1741,8 @@ export default function Home() {
     selectedVariant === 'type-7' ||
     selectedVariant === 'type-8' ||
     selectedVariant === 'type-9';
+  const useTypeEightSkin = selectedVariant === 'type-8';
+  const useTypeEightDots = selectedVariant === 'type-8';
   const useHoverOnlyTypeEightArea =
     selectedVariant === 'type-8' || selectedVariant === 'type-9';
   const usedotsSkin = selectedVariant === 'type-10';
@@ -1921,7 +1933,7 @@ export default function Home() {
             </div>
           </aside>
 
-          <section className='order-1 rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-4 sm:p-[18px] xl:order-2'>
+          <section className='order-1 overflow-hidden rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-4 sm:p-[18px] xl:order-2'>
             <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between'>
               <h2 className='text-[16px] font-medium'>Visibility Timeline</h2>
               <div className='flex items-center gap-1 self-start sm:self-auto'>
@@ -1958,7 +1970,47 @@ export default function Home() {
               </div>
             </div>
 
-            <div className='relative mt-4 overflow-x-auto sm:mt-[19px]'>
+            <div
+              className={`relative mt-4 sm:mt-[19px] ${
+                useTypeEightSkin ? '-mx-4 sm:-mx-[18px]' : ''
+              }`}
+            >
+              {useTypeEightSkin ? (
+                <div className='pointer-events-none absolute inset-y-0 -left-4 -right-4 sm:-left-[18px] sm:-right-[18px]'>
+                  <svg
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    preserveAspectRatio='none'
+                    className='block h-full w-full'
+                    aria-hidden='true'
+                  >
+                    {Array.from({ length: chartDisplayMaxValue + 1 }).map(
+                      (_, index) => {
+                        const y =
+                          chartPadding.top +
+                          (index * innerHeight) / chartDisplayMaxValue;
+
+                        return (
+                          <line
+                            key={`type-eight-bleed-line-${index}`}
+                            x1='0'
+                            y1={y}
+                            x2={chartWidth}
+                            y2={y}
+                            stroke='var(--separator-prominent)'
+                            strokeDasharray='3 8'
+                            opacity='var(--chart-dotted-line-opacity)'
+                          />
+                        );
+                      },
+                    )}
+                  </svg>
+                </div>
+              ) : null}
+              <div
+                className={`relative overflow-x-auto ${
+                  useTypeEightSkin ? 'px-4 sm:px-[18px]' : ''
+                }`}
+              >
               {hoveredPoint !== null &&
               hoveredX !== null &&
               tooltipY !== null ? (
@@ -2101,7 +2153,7 @@ export default function Home() {
                     </pattern>
                   ) : null}
                 </defs>
-                {useTypeSevenSkin ? (
+                {useTypeSevenSkin && !useTypeEightSkin ? (
                   <rect
                     x={currentLeftPadding}
                     y={chartPadding.top}
@@ -2133,10 +2185,11 @@ export default function Home() {
                     />
                   </>
                 ) : null}
-                {Array.from({ length: chartMaxValue + 1 }).map((_, index) => {
-                  const value = chartMaxValue - index;
+                {Array.from({ length: chartDisplayMaxValue + 1 }).map((_, index) => {
+                  const value = chartDisplayMaxValue - index;
                   const y =
-                    chartPadding.top + (index * innerHeight) / chartMaxValue;
+                    chartPadding.top +
+                    (index * innerHeight) / chartDisplayMaxValue;
 
                   return (
                     <g key={value}>
@@ -2169,12 +2222,22 @@ export default function Home() {
                                   ? '3 8'
                               : undefined
                         }
-                        opacity={usedotsSkin ? 0.55 : useBarChart ? 0.9 : 1}
+                        opacity={
+                          useTypeEightSkin
+                            ? 0
+                            : usedotsSkin
+                              ? 'calc(var(--chart-dotted-line-opacity) * 0.55)'
+                              : useBarChart
+                                ? 'var(--chart-dotted-line-opacity)'
+                                : useDashedBaseGrid
+                                  ? 'var(--chart-dotted-line-opacity)'
+                                  : 'var(--chart-background-line-opacity)'
+                        }
                       />
-                      {axisVisible ? (
+                      {axisVisible && value <= chartMaxValue ? (
                         <text
                           x='0'
-                          y={y + 4}
+                          y={useTypeEightSkin ? Math.max(y - 3, 10) : y + 4}
                           fill='var(--foreground-secondary)'
                           fontSize='12'
                           fontFamily={
@@ -2199,7 +2262,12 @@ export default function Home() {
                         x2={point.x}
                         y2={chartHeight - 28}
                         stroke='var(--separator-prominent)'
-                        strokeDasharray='3 8'
+                        strokeDasharray={useTypeEightSkin ? undefined : '3 8'}
+                        opacity={
+                          useTypeEightSkin
+                            ? 'var(--chart-background-line-opacity)'
+                            : 'var(--chart-dotted-line-opacity)'
+                        }
                       />
                     ))
                   : null}
@@ -2213,7 +2281,7 @@ export default function Home() {
                         y2={chartHeight - 28}
                         stroke='var(--separator-light)'
                         strokeDasharray='2 10'
-                        opacity='0.55'
+                        opacity='calc(var(--chart-dotted-line-opacity) * 0.55)'
                       />
                     ))
                   : null}
@@ -2222,7 +2290,7 @@ export default function Home() {
                   ? seriesPaths.map((series) => (
                       <path
                         key={`${series.key}-base-area`}
-                        d={buildAreaPath(series.points)}
+                        d={buildAreaPath(series.points, getDisplayY(0))}
                         fill={`url(#area-${series.key})`}
                         opacity={
                           hoveredSeries === null
@@ -2245,8 +2313,8 @@ export default function Home() {
                           key={`${series.key}-area`}
                           d={
                             useCurvedLines
-                              ? buildSmoothAreaPath(series.points)
-                              : buildAreaPath(series.points)
+                              ? buildSmoothAreaPath(series.points, getDisplayY(0))
+                              : buildAreaPath(series.points, getDisplayY(0))
                           }
                           fill={`url(#area-${series.key})`}
                           opacity='1'
@@ -2258,8 +2326,8 @@ export default function Home() {
                   ? displayPoints.flatMap((point, pointIndex) =>
                       chartSeries.map((series, seriesIndex) => {
                         const value = point[series.key];
-                        const y = getChartY(value);
-                        const baseline = getChartY(0);
+                        const y = getDisplayY(value);
+                        const baseline = getDisplayY(0);
                         const x =
                           point.x -
                           totalGroupWidth / 2 +
@@ -2395,31 +2463,50 @@ export default function Home() {
                     ))
                   : null}
 
-                {dotsAlwaysVisible && !useBarChart
+                {(dotsAlwaysVisible || useTypeEightDots) && !useBarChart
                   ? chartSeries.flatMap((series) =>
-                      displayPoints.map((point, index) => (
-                        <circle
-                          key={`${series.key}-dot-${index}`}
-                          cx={point.x}
-                          cy={getChartY(point[series.key])}
-                          r={
-                            hoveredSeries === series.key &&
-                            hoveredIndex === index
-                              ? '3.8'
-                              : '2.6'
-                          }
-                          fill={series.color}
-                          stroke='var(--background-card)'
-                          strokeWidth='1.2'
-                          opacity={
-                            hoveredSeries === null
-                              ? 1
-                              : hoveredSeries === series.key
+                      displayPoints.flatMap((point, index, source) => {
+                        const isEndPoint =
+                          index === 0 || index === source.length - 1;
+                        if (useTypeEightDots && !isEndPoint) {
+                          return [];
+                        }
+
+                        const baseRadius = useTypeEightDots
+                          ? isEndPoint
+                            ? 3.3
+                            : 1.9
+                          : 2.6;
+                        const activeRadius = useTypeEightDots
+                          ? isEndPoint
+                            ? 4
+                            : 2.5
+                          : 3.8;
+
+                        return (
+                          <circle
+                            key={`${series.key}-dot-${index}`}
+                            cx={point.x}
+                            cy={getDisplayY(point[series.key])}
+                            r={
+                              hoveredSeries === series.key &&
+                              hoveredIndex === index
+                                ? activeRadius
+                                : baseRadius
+                            }
+                            fill={series.color}
+                            stroke='var(--background-card)'
+                            strokeWidth={useTypeEightDots ? '1' : '1.2'}
+                            opacity={
+                              hoveredSeries === null
                                 ? 1
-                                : 0.4
-                          }
-                        />
-                      )),
+                                : hoveredSeries === series.key
+                                  ? 1
+                                  : 0.4
+                            }
+                          />
+                        );
+                      }),
                     )
                   : null}
 
@@ -2438,7 +2525,7 @@ export default function Home() {
                           <circle
                             key={series.key}
                             cx={point.x}
-                            cy={getChartY(point[series.key])}
+                            cy={getDisplayY(point[series.key])}
                             r={dotsAlwaysVisible ? '4.2' : '3.6'}
                             fill={series.color}
                             stroke='var(--background-card)'
@@ -2450,13 +2537,19 @@ export default function Home() {
 
                 {displayPoints.map((point) => {
                   const x = point.x;
+                  const isFirstPoint = point.label === displayPoints[0]?.label;
+                  const isLastPoint =
+                    point.label ===
+                    displayPoints[displayPoints.length - 1]?.label;
 
                   return (
                     <g key={point.label}>
                       <text
                         x={x}
                         y={chartHeight - 4}
-                        textAnchor='middle'
+                        textAnchor={
+                          isFirstPoint ? 'start' : isLastPoint ? 'end' : 'middle'
+                        }
                         fill='var(--foreground-secondary)'
                         fontSize={point.label === '1 May' ? 9 : 10.5}
                         fontFamily={
@@ -2471,6 +2564,7 @@ export default function Home() {
                   );
                 })}
               </svg>
+              </div>
             </div>
 
             <div className='mx-auto mt-2 h-px w-32 bg-[var(--gauge-divider)]' />

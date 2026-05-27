@@ -37,6 +37,8 @@
   --gauge-pattern: rgba(255, 255, 255, 0.04);
   --gauge-divider: rgba(255, 255, 255, 0.16);
   --icon-chip: rgba(255, 255, 255, 0.08);
+  --chart-background-line-opacity: 0.7;
+  --chart-dotted-line-opacity: 1;
 }
 
 html[data-theme='light'] {
@@ -65,6 +67,8 @@ html[data-theme='light'] {
   --gauge-pattern: rgba(23, 23, 23, 0.06);
   --gauge-divider: rgba(23, 23, 23, 0.12);
   --icon-chip: rgba(23, 23, 23, 0.08);
+  --chart-background-line-opacity: 0.4;
+  --chart-dotted-line-opacity: 0.7;
 }
 
 @theme inline {
