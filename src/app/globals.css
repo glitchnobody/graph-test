@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
 :root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --background-primary: #000000;
+  --background-secondary: #121212;
+  --background-tertiary: #1f1f1f;
+  --background-card: #0a0a0a;
+  --background-menu: #0a0a0a;
+  --background-popover: #000000;
+  --background-prominent: #eeeeee;
+  --foreground-primary: #ffffff;
+  --foreground-secondary: #a1a1a1;
+  --foreground-paragraph: #acacac;
+  --foreground-caption: #92959b;
+  --foreground-tertiary: #121212;
+  --separator-prominent: #353535;
+  --separator-light: #1a1a1a;
+  --separator-button: #00000000;
+  --status-error: #dd443c;
+  --status-warning: #dd9f3c;
+  --status-success: #4bae00;
+  --accent-blue: #0059e6;
+  --accent-orange: #ff8c00;
+  --accent-lime: #469700;
+  --accent-pink: #fd006e;
+  --accent-red: #dd443c;
+  --accent-violet: #8924c2;
+  --accent-cyan: #4e24c2;
+  --highlight-scribble: #cbf36c;
+  --surface-card: #0a0a0a;
+  --surface-muted: #121212;
+  --surface-raised: #161616;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+  --bar-empty: rgba(255, 255, 255, 0.14);
+  --gauge-pattern: rgba(255, 255, 255, 0.04);
+  --gauge-divider: rgba(255, 255, 255, 0.16);
+  --icon-chip: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="light"] {
   --background: #ffffff;
   --foreground: #171717;
+  --background-primary: #ffffff;
+  --background-secondary: #ffffff;
+  --background-tertiary: #eaeaea;
+  --background-card: #f9f9f9;
+  --background-menu: #f9f9f9;
+  --background-popover: #ffffff;
+  --background-prominent: #121212;
+  --foreground-primary: #171717;
+  --foreground-secondary: #8c8c8c;
+  --foreground-paragraph: #3a3a3a;
+  --foreground-caption: #666666;
+  --foreground-tertiary: #eeeeee;
+  --separator-prominent: #d9d9d9;
+  --separator-light: #eaeaea;
+  --separator-button: #eaeaea;
+  --surface-card: #f9f9f9;
+  --surface-muted: #ffffff;
+  --surface-raised: #ffffff;
+  --chart-grid: rgba(23, 23, 23, 0.09);
+  --bar-empty: rgba(23, 23, 23, 0.14);
+  --gauge-pattern: rgba(23, 23, 23, 0.06);
+  --gauge-divider: rgba(23, 23, 23, 0.12);
+  --icon-chip: rgba(23, 23, 23, 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-space-grotesk);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background-primary);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background-primary);
+  color: var(--foreground-primary);
+  font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(0, 89, 230, 0.35);
+  color: var(--foreground-primary);
+}
+
+.chart-line {
+  transition: opacity 180ms ease;
+}
+
+.chart-dot {
+  opacity: 0;
+  transform-origin: center;
+  animation: pop-dot 380ms ease-out forwards;
+}
+
+.gauge-progress {
+  transition: stroke-dasharray 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 0 12px rgba(0, 89, 230, 0.35));
+}
+
+@keyframes pop-dot {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
