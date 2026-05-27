@@ -16,7 +16,9 @@ type VariantKey =
   | 'type-7'
   | 'type-8'
   | 'type-9'
-  | 'type-10';
+  | 'type-10'
+  | 'type-11'
+  | 'type-12';
 
 type SeriesPoint = {
   label: string;
@@ -61,6 +63,11 @@ type VariantConfig = {
   key: VariantKey;
   label: string;
   modifiers: Record<ModelKey, { offset: number; wave: number; phase: number }>;
+};
+
+type SelectOption = {
+  value: string;
+  label: string;
 };
 
 const modelKeys: ModelKey[] = [
@@ -690,11 +697,34 @@ const chartVariants: VariantConfig[] = [
       grok: { offset: 0, wave: 0, phase: 0 },
     },
   },
+  {
+    key: 'type-11',
+    label: 'Type 11',
+    modifiers: {
+      gemini: { offset: 0, wave: 0, phase: 0 },
+      chatgpt: { offset: 0, wave: 0, phase: 0 },
+      perplexity: { offset: 0, wave: 0, phase: 0 },
+      copilot: { offset: 0, wave: 0, phase: 0 },
+      grok: { offset: 0, wave: 0, phase: 0 },
+    },
+  },
+  {
+    key: 'type-12',
+    label: 'Type 12',
+    modifiers: {
+      gemini: { offset: 0, wave: 0, phase: 0 },
+      chatgpt: { offset: 0, wave: 0, phase: 0 },
+      perplexity: { offset: 0, wave: 0, phase: 0 },
+      copilot: { offset: 0, wave: 0, phase: 0 },
+      grok: { offset: 0, wave: 0, phase: 0 },
+    },
+  },
 ];
 
 const chartHeight = 242;
 const chartWidth = 930;
 const chartPadding = { top: 10, right: 18, bottom: 30, left: 24 };
+const barChartPadding = { top: 10, right: 56, bottom: 30, left: 58 };
 const chartMaxValue = 6;
 
 function getChartX(index: number, total: number) {
@@ -706,8 +736,9 @@ function getChartXWithPadding(
   index: number,
   total: number,
   leftPadding: number,
+  rightPadding = chartPadding.right,
 ) {
-  const innerWidth = chartWidth - leftPadding - chartPadding.right;
+  const innerWidth = chartWidth - leftPadding - rightPadding;
   return leftPadding + (index * innerWidth) / Math.max(total - 1, 1);
 }
 
@@ -867,29 +898,91 @@ function TinySelect({
 }: {
   value: string;
   onChange?: (value: string) => void;
-  options: { value: string; label: string }[];
+  options: SelectOption[];
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const current = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <label className='relative inline-flex items-center'>
-      <span className='pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--foreground-primary)]'>
-        <CalendarIcon />
-      </span>
-      <select
+    <div ref={rootRef} className='relative inline-flex'>
+      <button
+        type='button'
+        aria-haspopup='listbox'
+        aria-expanded={open}
         aria-label='Select range'
-        value={value}
-        onChange={(event) => onChange?.(event.target.value)}
-        className='h-7 appearance-none rounded-lg border border-[var(--separator-button)] bg-[var(--surface-muted)] pl-8 pr-8 text-[12px] text-[var(--foreground-primary)] outline-none transition-colors hover:border-[var(--separator-prominent)]'
+        onClick={() => setOpen((currentOpen) => !currentOpen)}
+        className='inline-flex h-7 items-center gap-2 rounded-lg border border-[var(--separator-button)] bg-[var(--surface-muted)] px-2.5 text-[12px] text-[var(--foreground-primary)] outline-none transition-colors hover:border-[var(--separator-prominent)]'
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <span className='pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[var(--foreground-secondary)]'>
-        <ChevronDownIcon />
-      </span>
-    </label>
+        <span className='text-[var(--foreground-primary)]'>
+          <CalendarIcon />
+        </span>
+        <span>{current.label}</span>
+        <span
+          className={`text-[var(--foreground-secondary)] transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
+        >
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open ? (
+        <div
+          role='listbox'
+          className='absolute right-0 top-[calc(100%+8px)] z-20 min-w-[132px] rounded-xl border border-[var(--separator-light)] bg-[var(--background-popover)] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.35)]'
+        >
+          {options.map((option) => {
+            const isActive = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type='button'
+                role='option'
+                aria-selected={isActive}
+                onClick={() => {
+                  onChange?.(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors ${
+                  isActive
+                    ? 'bg-[var(--surface-muted)] text-[var(--foreground-primary)]'
+                    : 'text-[var(--foreground-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground-primary)]'
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -906,22 +999,22 @@ function AxisToggle({
       aria-pressed={checked}
       aria-label={checked ? 'Hide Y axis' : 'Show Y axis'}
       onClick={onToggle}
-      className='inline-flex h-7 items-center gap-2 rounded-lg border border-[var(--separator-button)] bg-[var(--surface-muted)] px-2 text-[12px] text-[var(--foreground-primary)] transition-colors hover:border-[var(--separator-prominent)]'
+      className='inline-flex h-8 shrink-0 items-center gap-2 rounded-xl border border-[var(--separator-button)] bg-[var(--surface-muted)] px-2.5 text-[12px] text-[var(--foreground-primary)] transition-colors hover:border-[var(--separator-prominent)] sm:mb-[2px] sm:gap-2.5 sm:px-3'
     >
       <span className='text-[var(--foreground-secondary)]'>
         <AxisIcon />
       </span>
       <span>Y Axis</span>
       <span
-        className={`relative h-3.5 w-6 rounded-full transition-colors ${
+        className={`relative flex h-3.5 w-6 items-center rounded-full transition-colors ${
           checked
             ? 'bg-[var(--accent-blue)]'
             : 'bg-[var(--separator-prominent)]'
         }`}
       >
         <span
-          className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-[11px]' : 'translate-x-0.5'
+          className={`absolute h-2.5 w-2.5 rounded-full bg-white transition-transform ${
+            checked ? 'translate-x-[11px]' : 'translate-x-[2px]'
           }`}
         />
       </span>
@@ -936,37 +1029,101 @@ function HeaderTypeSelect({
 }: {
   value: string;
   onChange?: (value: string) => void;
-  options: { value: string; label: string }[];
+  options: SelectOption[];
 }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const current =
     options.find((option) => option.value === value) ?? options[0];
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <label className='relative inline-flex cursor-pointer items-center gap-3'>
-      <div className='flex flex-col gap-[2px]'>
-        <span className='text-[16px] font-medium text-[var(--foreground-primary)]'>
-          {current.label}
-        </span>
-        <span className='text-[12px] text-[var(--foreground-secondary)]'>
-          Select Line Graph type
-        </span>
-      </div>
-      <span className='pointer-events-none text-[var(--foreground-secondary)]'>
-        <ChevronDownIcon />
-      </span>
-      <select
+    <div ref={rootRef} className='relative inline-flex'>
+      <button
+        type='button'
+        aria-haspopup='listbox'
+        aria-expanded={open}
         aria-label='Select chart type'
-        value={value}
-        onChange={(event) => onChange?.(event.target.value)}
-        className='absolute inset-0 cursor-pointer appearance-none opacity-0'
+        onClick={() => setOpen((currentOpen) => !currentOpen)}
+        className='inline-flex min-w-0 items-center gap-2 rounded-xl px-1 py-1 text-left outline-none transition-colors hover:text-[var(--foreground-primary)] sm:items-end sm:gap-3'
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <div className='flex min-w-0 flex-col gap-[2px] leading-none'>
+          <span className='truncate text-[14px] font-medium text-[var(--foreground-primary)] sm:text-[16px]'>
+            {current.label}
+          </span>
+          <span className='hidden text-[12px] text-[var(--foreground-secondary)] sm:block'>
+            Select Line Graph type
+          </span>
+        </div>
+        <span
+          className={`shrink-0 text-[var(--foreground-secondary)] transition-transform sm:mb-[2px] ${
+            open ? 'rotate-180' : ''
+          }`}
+        >
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open ? (
+        <div
+          role='listbox'
+          className='absolute left-0 top-[calc(100%+10px)] z-20 min-w-[220px] rounded-xl border border-[var(--separator-light)] bg-[var(--background-popover)] p-1 shadow-[0_18px_44px_rgba(0,0,0,0.38)]'
+        >
+          {options.map((option) => {
+            const isActive = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type='button'
+                role='option'
+                aria-selected={isActive}
+                onClick={() => {
+                  onChange?.(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors ${
+                  isActive
+                    ? 'bg-[var(--surface-muted)] text-[var(--foreground-primary)]'
+                    : 'text-[var(--foreground-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground-primary)]'
+                }`}
+              >
+                <span className='text-[13px] font-medium'>{option.label}</span>
+                {isActive ? (
+                  <span className='text-[10px] text-[var(--foreground-secondary)]'>
+                    Active
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -1406,12 +1563,22 @@ export default function Home() {
     chartVariants.find((variant) => variant.key === selectedVariant) ??
     chartVariants[0];
   const points = applyVariant(activeMonth[selectedRange], activeVariant);
+  const useBarChart =
+    selectedVariant === 'type-11' || selectedVariant === 'type-12';
+  const useCappedBarChart = selectedVariant === 'type-12';
   const axisVisible = showYAxis;
-  const currentLeftPadding = axisVisible ? chartPadding.left : 8;
+  const activePadding = useBarChart ? barChartPadding : chartPadding;
+  const currentLeftPadding = axisVisible ? activePadding.left : 8;
+  const currentRightPadding = activePadding.right;
   const [displayPoints, setDisplayPoints] = useState<AnimatedPoint[]>(() =>
     points.map((point, index) => ({
       ...point,
-      x: getChartXWithPadding(index, points.length, currentLeftPadding),
+      x: getChartXWithPadding(
+        index,
+        points.length,
+        currentLeftPadding,
+        currentRightPadding,
+      ),
     })),
   );
   const currentPointsRef = useRef<AnimatedPoint[]>(displayPoints);
@@ -1424,7 +1591,12 @@ export default function Home() {
     const startPoints = currentPointsRef.current;
     const targetPoints: AnimatedPoint[] = points.map((point, index) => ({
       ...point,
-      x: getChartXWithPadding(index, points.length, currentLeftPadding),
+      x: getChartXWithPadding(
+        index,
+        points.length,
+        currentLeftPadding,
+        currentRightPadding,
+      ),
     }));
     let frameId = 0;
     const startedAt = performance.now();
@@ -1475,7 +1647,7 @@ export default function Home() {
     frameId = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(frameId);
-  }, [points, currentLeftPadding]);
+  }, [points, currentLeftPadding, currentRightPadding]);
 
   const seriesPaths = chartSeries.map((series) => ({
     ...series,
@@ -1507,7 +1679,12 @@ export default function Home() {
     hoveredIndex === null
       ? null
       : (displayPoints[hoveredIndex]?.x ??
-        getChartXWithPadding(hoveredIndex, points.length, currentLeftPadding));
+        getChartXWithPadding(
+          hoveredIndex,
+          points.length,
+          currentLeftPadding,
+          currentRightPadding,
+        ));
   const hoveredValues =
     hoveredPoint === null
       ? []
@@ -1541,6 +1718,13 @@ export default function Home() {
     selectedVariant === 'type-5' ||
     selectedVariant === 'type-6' ||
     selectedVariant === 'type-9';
+  const useDashedBaseGrid =
+    selectedVariant === 'type-1' ||
+    selectedVariant === 'type-2' ||
+    selectedVariant === 'type-3' ||
+    selectedVariant === 'type-4' ||
+    selectedVariant === 'type-5' ||
+    selectedVariant === 'type-6';
   const useGlowingLines = selectedVariant === 'type-5';
   const useThickerTypeSixLines = selectedVariant === 'type-6';
   const useTypeSevenSkin =
@@ -1550,6 +1734,18 @@ export default function Home() {
   const useHoverOnlyTypeEightArea =
     selectedVariant === 'type-8' || selectedVariant === 'type-9';
   const usedotsSkin = selectedVariant === 'type-10';
+  const barGap = 2;
+  const barWidth = 10;
+  const totalGroupWidth =
+    chartSeries.length * barWidth + (chartSeries.length - 1) * barGap;
+  const firstBarStart =
+    displayPoints[0]?.x !== undefined
+      ? displayPoints[0].x - totalGroupWidth / 2
+      : currentLeftPadding;
+  const lastBarEnd =
+    displayPoints[displayPoints.length - 1]?.x !== undefined
+      ? displayPoints[displayPoints.length - 1].x + totalGroupWidth / 2
+      : chartWidth - currentRightPadding;
   const updateHoveredIndexFromSvg = (event: ReactMouseEvent<SVGSVGElement>) => {
     if (hoveredSeries === null) {
       return;
@@ -1575,8 +1771,8 @@ export default function Home() {
   return (
     <main className='min-h-screen bg-[var(--background-primary)] text-[var(--foreground-primary)]'>
       <section className='border-b border-[var(--separator-light)]'>
-        <div className='mx-auto flex w-full max-w-[1512px] items-center justify-between px-6 py-[10px]'>
-          <div className='flex items-center gap-3'>
+        <div className='mx-auto flex w-full max-w-[1512px] items-center justify-between gap-3 px-4 py-[10px] sm:px-6'>
+          <div className='flex min-w-0 items-center gap-2 sm:gap-3'>
             <HeaderTypeSelect
               value={selectedVariant}
               onChange={(value) => {
@@ -1600,15 +1796,15 @@ export default function Home() {
             onClick={() =>
               setThemeMode((mode) => (mode === 'dark' ? 'light' : 'dark'))
             }
-            className='flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--separator-light)] bg-[var(--surface-muted)] text-[var(--foreground-primary)]'
+            className='flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[var(--separator-light)] bg-[var(--surface-muted)] text-[var(--foreground-primary)]'
           >
             <ThemeIcon mode={themeMode} />
           </button>
         </div>
       </section>
 
-      <div className='mx-auto flex w-full max-w-[1512px] flex-col gap-6 px-6 py-6'>
-        <section className='grid gap-[18px] lg:grid-cols-3'>
+      <div className='mx-auto flex w-full max-w-[1512px] flex-col gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-6'>
+        <section className='order-2 grid gap-[18px] lg:order-1 lg:grid-cols-3'>
           <SummaryCard
             title='Queries Tracked'
             value='24 total'
@@ -1651,8 +1847,8 @@ export default function Home() {
           />
         </section>
 
-        <section className='grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]'>
-          <aside className='rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-[18px]'>
+        <section className='order-1 grid gap-6 lg:order-2 xl:grid-cols-[340px_minmax(0,1fr)]'>
+          <aside className='order-2 rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-4 sm:p-[18px] xl:order-1'>
             <div className='flex items-center justify-between'>
               <h2 className='text-[16px] font-medium'>Total Visibility</h2>
               <TinySelect
@@ -1725,10 +1921,10 @@ export default function Home() {
             </div>
           </aside>
 
-          <section className='rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-[18px]'>
-            <div className='flex flex-wrap items-center justify-between gap-3'>
+          <section className='order-1 rounded-lg border border-[var(--separator-light)] bg-[var(--background-card)] p-4 sm:p-[18px] xl:order-2'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between'>
               <h2 className='text-[16px] font-medium'>Visibility Timeline</h2>
-              <div className='flex items-center gap-1'>
+              <div className='flex items-center gap-1 self-start sm:self-auto'>
                 <TinySelect
                   value={selectedRange}
                   onChange={(value) => setSelectedRange(value as RangeKey)}
@@ -1762,7 +1958,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className='relative mt-[19px] overflow-x-auto'>
+            <div className='relative mt-4 overflow-x-auto sm:mt-[19px]'>
               {hoveredPoint !== null &&
               hoveredX !== null &&
               tooltipY !== null ? (
@@ -1813,7 +2009,7 @@ export default function Home() {
               ) : null}
               <svg
                 viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                className='block min-w-[720px] w-full h-auto'
+                className='block h-auto w-full'
                 role='img'
                 aria-label={`Visibility line chart for ${activeMonth.label}`}
                 onMouseMove={updateHoveredIndexFromSvg}
@@ -1844,6 +2040,50 @@ export default function Home() {
                       />
                     </linearGradient>
                   ))}
+                  {useBarChart
+                    ? chartSeries.map((series) => (
+                        <>
+                          <linearGradient
+                            key={`${series.key}-bar-gradient`}
+                            id={`bar-gradient-${series.key}`}
+                            x1='0'
+                            y1='0'
+                            x2='0'
+                            y2='1'
+                          >
+                            <stop
+                              offset='0%'
+                              stopColor={series.color}
+                              stopOpacity='1'
+                            />
+                            <stop
+                              offset='100%'
+                              stopColor={series.color}
+                              stopOpacity='0'
+                            />
+                          </linearGradient>
+                          <linearGradient
+                            key={`${series.key}-bar-gradient-hover`}
+                            id={`bar-gradient-hover-${series.key}`}
+                            x1='0'
+                            y1='0'
+                            x2='0'
+                            y2='1'
+                          >
+                            <stop
+                              offset='0%'
+                              stopColor={series.color}
+                              stopOpacity='1'
+                            />
+                            <stop
+                              offset='100%'
+                              stopColor={series.color}
+                              stopOpacity='1'
+                            />
+                          </linearGradient>
+                        </>
+                      ))
+                    : null}
                   {usedotsSkin ? (
                     <pattern
                       id='dots-dot-grid'
@@ -1901,13 +2141,19 @@ export default function Home() {
                   return (
                     <g key={value}>
                       <line
-                        x1={currentLeftPadding}
+                        x1={useBarChart ? firstBarStart : currentLeftPadding}
                         y1={y}
-                        x2={chartWidth - chartPadding.right}
+                        x2={
+                          useBarChart
+                            ? lastBarEnd
+                            : chartWidth - chartPadding.right
+                        }
                         y2={y}
                         stroke={
                           usedotsSkin
                             ? 'var(--separator-light)'
+                            : useBarChart
+                              ? 'var(--separator-light)'
                             : useTypeSevenSkin
                               ? 'var(--separator-prominent)'
                               : 'var(--chart-grid)'
@@ -1917,9 +2163,13 @@ export default function Home() {
                             ? '3 8'
                             : usedotsSkin
                               ? '2 10'
+                              : useBarChart
+                                ? '3 8'
+                                : useDashedBaseGrid
+                                  ? '3 8'
                               : undefined
                         }
-                        opacity={usedotsSkin ? 0.55 : 1}
+                        opacity={usedotsSkin ? 0.55 : useBarChart ? 0.9 : 1}
                       />
                       {axisVisible ? (
                         <text
@@ -1968,7 +2218,7 @@ export default function Home() {
                     ))
                   : null}
 
-                {useTypeSevenSkin && !useHoverOnlyTypeEightArea
+                {useTypeSevenSkin && !useHoverOnlyTypeEightArea && !useBarChart
                   ? seriesPaths.map((series) => (
                       <path
                         key={`${series.key}-base-area`}
@@ -1986,6 +2236,7 @@ export default function Home() {
                   : null}
 
                 {hoveredSeries !== null &&
+                !useBarChart &&
                 (!useTypeSevenSkin || useHoverOnlyTypeEightArea)
                   ? seriesPaths
                       .filter((series) => series.key === hoveredSeries)
@@ -2003,78 +2254,148 @@ export default function Home() {
                       ))
                   : null}
 
-                {seriesPaths.map((series) => (
-                  <path
-                    key={series.key}
-                    d={
-                      useCurvedLines
-                        ? buildSmoothLinePath(series.points)
-                        : buildLinePath(series.points)
-                    }
-                    fill='none'
-                    stroke={series.color}
-                    strokeWidth={
-                      useTypeSevenSkin
-                        ? series.key === 'gemini' || series.key === 'chatgpt'
-                          ? '2.2'
-                          : '1.7'
-                        : usedotsSkin
-                          ? series.key === 'gemini' || series.key === 'chatgpt'
-                            ? '2.15'
-                            : '1.65'
-                          : useThickerTypeSixLines
+                {useBarChart
+                  ? displayPoints.flatMap((point, pointIndex) =>
+                      chartSeries.map((series, seriesIndex) => {
+                        const value = point[series.key];
+                        const y = getChartY(value);
+                        const baseline = getChartY(0);
+                        const x =
+                          point.x -
+                          totalGroupWidth / 2 +
+                          seriesIndex * (barWidth + barGap);
+
+                        return (
+                          <g key={`${series.key}-bar-group-${point.label}`}>
+                            <rect
+                              x={x}
+                              y={y}
+                              width={barWidth}
+                              height={Math.max(0, baseline - y)}
+                              rx='2.5'
+                              fill={
+                                useCappedBarChart
+                                  ? 'var(--separator-light)'
+                                  : `url(#${
+                                      hoveredSeries === series.key
+                                        ? `bar-gradient-hover-${series.key}`
+                                        : `bar-gradient-${series.key}`
+                                    })`
+                              }
+                              opacity={
+                                hoveredSeries === null
+                                  ? 0.95
+                                  : hoveredSeries === series.key
+                                    ? 1
+                                    : 0.4
+                              }
+                              onMouseEnter={() => {
+                                setHoveredSeries(series.key);
+                                setHoveredIndex(pointIndex);
+                              }}
+                              onMouseMove={() => {
+                                setHoveredSeries(series.key);
+                                setHoveredIndex(pointIndex);
+                              }}
+                            />
+                            <line
+                              x1={x + 1}
+                              y1={y}
+                              x2={x + barWidth - 1}
+                              y2={y}
+                              stroke={series.color}
+                              strokeWidth='3'
+                              strokeLinecap='round'
+                              opacity={
+                                hoveredSeries === null
+                                  ? 1
+                                  : hoveredSeries === series.key
+                                    ? 1
+                                    : 0.4
+                              }
+                              pointerEvents='none'
+                            />
+                          </g>
+                        );
+                      }),
+                    )
+                  : seriesPaths.map((series) => (
+                      <path
+                        key={series.key}
+                        d={
+                          useCurvedLines
+                            ? buildSmoothLinePath(series.points)
+                            : buildLinePath(series.points)
+                        }
+                        fill='none'
+                        stroke={series.color}
+                        strokeWidth={
+                          useTypeSevenSkin
                             ? series.key === 'gemini' ||
                               series.key === 'chatgpt'
                               ? '2.2'
                               : '1.7'
-                            : series.key === 'gemini' ||
+                            : usedotsSkin
+                              ? series.key === 'gemini' ||
                                 series.key === 'chatgpt'
-                              ? '1.9'
-                              : '1.35'
-                    }
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    className='chart-line'
-                    opacity={
-                      hoveredSeries === null
-                        ? useTypeSevenSkin || usedotsSkin
-                          ? 0.98
-                          : series.key === 'gemini' || series.key === 'chatgpt'
-                            ? 1
-                            : 0.9
-                        : hoveredSeries === series.key
-                          ? 1
-                          : 0.4
-                    }
-                    style={
-                      useGlowingLines
-                        ? {
-                            filter: `drop-shadow(0 0 2px ${series.color})`,
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
+                                ? '2.15'
+                                : '1.65'
+                              : useThickerTypeSixLines
+                                ? series.key === 'gemini' ||
+                                  series.key === 'chatgpt'
+                                  ? '2.2'
+                                  : '1.7'
+                                : series.key === 'gemini' ||
+                                    series.key === 'chatgpt'
+                                  ? '1.9'
+                                  : '1.35'
+                        }
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        className='chart-line'
+                        opacity={
+                          hoveredSeries === null
+                            ? useTypeSevenSkin || usedotsSkin
+                              ? 0.98
+                              : series.key === 'gemini' ||
+                                  series.key === 'chatgpt'
+                                ? 1
+                                : 0.9
+                            : hoveredSeries === series.key
+                              ? 1
+                              : 0.4
+                        }
+                        style={
+                          useGlowingLines
+                            ? {
+                                filter: `drop-shadow(0 0 2px ${series.color})`,
+                              }
+                            : undefined
+                        }
+                      />
+                    ))}
 
-                {seriesPaths.map((series) => (
-                  <path
-                    key={`${series.key}-hit`}
-                    d={
-                      useCurvedLines
-                        ? buildSmoothLinePath(series.points)
-                        : buildLinePath(series.points)
-                    }
-                    fill='none'
-                    stroke='transparent'
-                    strokeWidth='16'
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    onMouseEnter={updateHoveredSeries(series.key)}
-                    onMouseMove={updateHoveredSeries(series.key)}
-                  />
-                ))}
+                {!useBarChart
+                  ? seriesPaths.map((series) => (
+                      <path
+                        key={`${series.key}-hit`}
+                        d={
+                          useCurvedLines
+                            ? buildSmoothLinePath(series.points)
+                            : buildLinePath(series.points)
+                        }
+                        fill='none'
+                        stroke='transparent'
+                        strokeWidth='16'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        onMouseEnter={updateHoveredSeries(series.key)}
+                        onMouseMove={updateHoveredSeries(series.key)}
+                      />
+                    ))
+                  : null}
 
-                {dotsAlwaysVisible
+                {dotsAlwaysVisible && !useBarChart
                   ? chartSeries.flatMap((series) =>
                       displayPoints.map((point, index) => (
                         <circle
@@ -2102,7 +2423,9 @@ export default function Home() {
                     )
                   : null}
 
-                {hoveredIndex !== null && hoveredSeries !== null
+                {hoveredIndex !== null &&
+                hoveredSeries !== null &&
+                !useBarChart
                   ? chartSeries
                       .filter((series) => series.key === hoveredSeries)
                       .map((series) => {
@@ -2135,7 +2458,7 @@ export default function Home() {
                         y={chartHeight - 4}
                         textAnchor='middle'
                         fill='var(--foreground-secondary)'
-                        fontSize={point.label === '1 May' ? 10 : 12}
+                        fontSize={point.label === '1 May' ? 9 : 10.5}
                         fontFamily={
                           usedotsSkin ? 'var(--font-geist-mono)' : undefined
                         }
@@ -2153,15 +2476,15 @@ export default function Home() {
             <div className='mx-auto mt-2 h-px w-32 bg-[var(--gauge-divider)]' />
 
             <div className='mt-3'>
-              <div className='mb-3 grid grid-cols-[minmax(0,1fr)_175px] items-center gap-[18px] text-[14px] font-medium text-[var(--foreground-secondary)]'>
+              <div className='mb-3 hidden grid-cols-[minmax(0,1fr)_175px] items-center gap-[18px] text-[14px] font-medium text-[var(--foreground-secondary)] sm:grid'>
                 <span>Model</span>
                 <span className='text-right'>All Time Visibility Metric</span>
               </div>
-              <div className='space-y-0'>
+              <div className='space-y-2 sm:space-y-0'>
                 {metricRows.map((row, index) => (
                   <div
                     key={row.name}
-                    className='grid grid-cols-[minmax(0,1fr)_175px] items-center gap-[18px] rounded px-2 py-[6px]'
+                    className='grid gap-3 rounded px-2 py-[8px] sm:grid-cols-[minmax(0,1fr)_175px] sm:items-center sm:gap-[18px] sm:py-[6px]'
                     style={{
                       background:
                         index % 2 === 0
@@ -2181,7 +2504,10 @@ export default function Home() {
                         {row.name}
                       </span>
                     </div>
-                    <div className='flex items-center justify-end gap-[10px] rounded border border-[var(--separator-button)] bg-[var(--background-secondary)] px-3 py-[3px]'>
+                    <div className='flex items-center justify-between gap-[10px] rounded border border-[var(--separator-button)] bg-[var(--background-secondary)] px-3 py-[5px] sm:justify-end sm:py-[3px]'>
+                      <span className='text-[11px] text-[var(--foreground-secondary)] sm:hidden'>
+                        All Time Visibility Metric
+                      </span>
                       <span className='text-[14px] text-[var(--foreground-secondary)]'>
                         {row.metric}
                       </span>
